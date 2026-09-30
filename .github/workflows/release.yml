@@ -57,25 +57,33 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
 
-      - name: Install Boost
-        shell: powershell
-        run: choco install boost-msvc-14.3 -y
+    - name: Install Boost
+      shell: powershell
+      run: choco install boost-msvc-14.3 -y
 
-      - name: Find Boost
-        shell: powershell
-        run: |
-          Write-Host "Searching for Boost..."
-          Get-ChildItem C:\local -Recurse -Filter "*boost_unit_test_framework*" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
+    - name: Check Boost installation
+      shell: powershell
+      run: |
+        Write-Host "=== Boost directories ==="
+        Get-ChildItem C:\local -Directory -ErrorAction SilentlyContinue
 
-      - name: Configure
-        run: cmake -S . -B build -DPATCH_VERSION=${{ github.run_number }} -DBoost_NO_SYSTEM_PATHS=OFF
+        Write-Host "=== Boost libraries ==="
+        Get-ChildItem C:\local -Recurse -Filter "*boost_unit_test_framework*.lib" -ErrorAction SilentlyContinue |
+          Select-Object -ExpandProperty FullName
 
-      - name: Build
-        run: cmake --build build --config Release
+        Write-Host "=== Boost headers ==="
+        Get-ChildItem C:\local -Recurse -Filter "boost.hpp" -ErrorAction SilentlyContinue |
+          Select-Object -First 10 -ExpandProperty FullName
 
-      - name: Test
-        run: ctest --test-dir build -C Release --output-on-failure
+    - name: Configure
+      run: cmake -S . -B build -DPATCH_VERSION=${{ github.run_number }}
+
+    - name: Build
+      run: cmake --build build --config Release
+
+    - name: Test
+      run: ctest --test-dir build -C Release --output-on-failure
