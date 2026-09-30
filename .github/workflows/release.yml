@@ -1,5 +1,5 @@
 ```yaml
-name: 'C++ CI'
+name: C++ CI
 
 on:
   push:
@@ -64,21 +64,16 @@ jobs:
 
       - name: Install Boost
         shell: powershell
-        run: |
-          choco install boost-msvc-14.3 -y
+        run: choco install boost-msvc-14.3 -y
 
       - name: Find Boost
         shell: powershell
         run: |
           Write-Host "Searching for Boost..."
-          Get-ChildItem C:\local -Recurse -Filter "*boost_unit_test_framework*" -ErrorAction SilentlyContinue |
-            Select-Object -ExpandProperty FullName
+          Get-ChildItem C:\local -Recurse -Filter "*boost_unit_test_framework*" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
 
       - name: Configure
-        run: |
-          cmake -S . -B build `
-            -DPATCH_VERSION=${{ github.run_number }} `
-            -DBoost_NO_SYSTEM_PATHS=OFF
+        run: cmake -S . -B build -DPATCH_VERSION=${{ github.run_number }} -DBoost_NO_SYSTEM_PATHS=OFF
 
       - name: Build
         run: cmake --build build --config Release
