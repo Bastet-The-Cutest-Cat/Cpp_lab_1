@@ -7,6 +7,8 @@ project(helloworld VERSION ${PROJECT_VESRION})
 
 find_package(Boost COMPONENTS unit_test_framework REQUIRED)
 
+message(STATUS "Boost library dirs: ${Boost_LIBRARY_DIRS}")
+
 configure_file(version.h.in version.h)
 
 add_executable(helloworld_cli main.cpp)
@@ -31,6 +33,10 @@ target_link_libraries(helloworld_cli PRIVATE
 target_link_libraries(test_version
     Boost::unit_test_framework
     helloworld
+)
+
+target_link_directories(test_version PRIVATE
+    ${Boost_LIBRARY_DIRS}
 )
 
 if (MSVC)
