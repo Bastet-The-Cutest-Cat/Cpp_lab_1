@@ -1,3 +1,4 @@
+```yaml
 name: 'C++ CI'
 
 on:
@@ -10,15 +11,27 @@ jobs:
   build-linux:
     runs-on: ubuntu-latest
     permissions: write-all
+
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: true
-      - run: sudo apt-get update && sudo apt-get install libboost-test-dev -y
-      - run: cmake . -DPATCH_VERSION=${{ github.run_number }}
-      - run: cmake --build .
-      - run: cmake --build . --target test
-      - run: cmake --build . --target package
+
+      - name: Install Boost
+        run: sudo apt-get update && sudo apt-get install libboost-test-dev -y
+
+      - name: Configure
+        run: cmake . -DPATCH_VERSION=${{ github.run_number }}
+
+      - name: Build
+        run: cmake --build .
+
+      - name: Test
+        run: cmake --build . --target test
+
+      - name: Package
+        run: cmake --build . --target package
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -29,6 +42,7 @@ jobs:
           release_name: Release ${{ github.run_number }}
           draft: false
           prerelease: false
+
       - name: Upload Release Asset
         id: upload-release-asset
         uses: actions/upload-release-asset@v1
@@ -47,16 +61,28 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: true
-        
+
       - name: Install Boost
+        shell: powershell
         run: |
           choco install boost-msvc-14.3 -y
-        
+
+      - name: Find Boost
+        shell: powershell
+        run: |
+          Write-Host "Searching for Boost..."
+          Get-ChildItem C:\local -Recurse -Filter "*boost_unit_test_framework*" -ErrorAction SilentlyContinue |
+            Select-Object -ExpandProperty FullName
+
       - name: Configure
-        run: cmake -S . -B build -DPATCH_VERSION=${{ github.run_number }}
-        
+        run: |
+          cmake -S . -B build `
+            -DPATCH_VERSION=${{ github.run_number }} `
+            -DBoost_NO_SYSTEM_PATHS=OFF
+
       - name: Build
         run: cmake --build build --config Release
-        
+
       - name: Test
         run: ctest --test-dir build -C Release --output-on-failure
+```
