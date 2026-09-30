@@ -5,9 +5,10 @@ set(PROJECT_VESRION 0.0.${PATCH_VERSION})
 
 project(helloworld VERSION ${PROJECT_VESRION})
 
-find_package(Boost COMPONENTS unit_test_framework REQUIRED)
+set(Boost_USE_STATIC_LIBS ON)
+set(Boost_USE_STATIC_RUNTIME OFF)
 
-message(STATUS "Boost library dirs: ${Boost_LIBRARY_DIRS}")
+find_package(Boost REQUIRED COMPONENTS unit_test_framework)
 
 configure_file(version.h.in version.h)
 
@@ -19,24 +20,22 @@ set_target_properties(helloworld_cli helloworld test_version PROPERTIES
     CXX_STANDARD 14
     CXX_STANDARD_REQUIRED ON
 )
+
 target_include_directories(helloworld
     PRIVATE "${CMAKE_BINARY_DIR}"
 )
+
 set_target_properties(test_version PROPERTIES
-    # COMPILE_DEFINITIONS BOOST_TEST_DYN_LINK
     INCLUDE_DIRECTORIES ${Boost_INCLUDE_DIR}
 )
 
 target_link_libraries(helloworld_cli PRIVATE
     helloworld
 )
+
 target_link_libraries(test_version
     Boost::unit_test_framework
     helloworld
-)
-
-target_link_directories(test_version PRIVATE
-    ${Boost_LIBRARY_DIRS}
 )
 
 if (MSVC)
@@ -60,8 +59,6 @@ else ()
         -Wall -Wextra -pedantic -Werror
     )
 endif()
-
-
 
 install(TARGETS helloworld_cli RUNTIME DESTINATION bin)
 
