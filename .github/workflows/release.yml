@@ -1,3 +1,4 @@
+```yaml
 name: C++ CI
 
 on:
@@ -10,6 +11,9 @@ jobs:
   build-linux:
     runs-on: ubuntu-latest
     permissions: write-all
+
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
 
     steps:
       - uses: actions/checkout@v3
@@ -42,8 +46,7 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Upload Release Asset
-        id: upload-release-asset
+      - name: Upload Linux package
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -53,37 +56,44 @@ jobs:
           asset_name: helloworld-0.0.${{ github.run_number }}-Linux.deb
           asset_content_type: application/vnd.debian.binary-package
 
+
   build-windows:
     runs-on: windows-latest
+    needs: build-linux
+    permissions: write-all
 
     steps:
-    - uses: actions/checkout@v3
-      with:
-        submodules: true
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
 
-    - name: Install Boost
-      shell: powershell
-      run: choco install boost-msvc-14.3 -y
+      - name: Install Boost
+        shell: powershell
+        run: choco install boost-msvc-14.3 -y
 
-    - name: Check Boost installation
-      shell: powershell
-      run: |
-        Write-Host "=== Boost directories ==="
-        Get-ChildItem C:\local -Directory -ErrorAction SilentlyContinue
+      - name: Configure
+        run: cmake -S . -B build -DPATCH_VERSION=${{ github.run_number }}
 
-        Write-Host "=== Boost libraries ==="
-        Get-ChildItem C:\local -Recurse -Filter "*boost_unit_test_framework*.lib" -ErrorAction SilentlyContinue |
-          Select-Object -ExpandProperty FullName
+      - name: Build
+        run: cmake --build build --config Release
 
-        Write-Host "=== Boost headers ==="
-        Get-ChildItem C:\local -Recurse -Filter "boost.hpp" -ErrorAction SilentlyContinue |
-          Select-Object -First 10 -ExpandProperty FullName
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
 
-    - name: Configure
-      run: cmake -S . -B build -DPATCH_VERSION=${{ github.run_number }}
+      - name: Package
+        shell: powershell
+        run: |
+          Compress-Archive `
+            -Path build\Release\helloworld_cli.exe `
+            -DestinationPath helloworld-0.0.${{ github.run_number }}-Windows.zip
 
-    - name: Build
-      run: cmake --build build --config Release
-
-    - name: Test
-      run: ctest --test-dir build -C Release --output-on-failure
+      - name: Upload Windows package
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.build-linux.outputs.upload_url }}
+          asset_path: ./helloworld-0.0.${{ github.run_number }}-Windows.zip
+          asset_name: helloworld-0.0.${{ github.run_number }}-Windows.zip
+          asset_content_type: application/zip
+```
